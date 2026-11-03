@@ -1,0 +1,93 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+enum Role { PILOT CO_PILOT ATC_CONTROLLER ATC_LISTENER STAFF ADMIN }
+enum ApplicationStatus { PENDING APPROVED REJECTED MORE_INFO }
+enum FlightStatus { PLANNED BOARDING READY TAXIING DEPARTED EN_ROUTE ARRIVED CANCELLED }
+model User {
+ id String @id @default(cuid())
+ robloxUserId String @unique
+ robloxUsername String
+ pilotName String?
+ licenseNumber String?
+ role Role @default(PILOT)
+ active Boolean @default(false)
+ ownershipVerified Boolean @default(false)
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ applications LicenseApplication[]
+ flights Flight[]
+}
+model LicenseApplication {
+ id String @id @default(cuid())
+ userId String?
+ user User? @relation(fields:[userId],references:[id])
+ robloxUsername String
+ robloxUserId String
+ pilotName String
+ licenseNumber String
+ imagePath String
+ status ApplicationStatus @default(PENDING)
+ reviewNote String?
+ reviewedBy String?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([status,createdAt])
+}
+model Airport {
+ id String @id @default(cuid())
+ name String @unique
+ mapX Float?
+ mapY Float?
+ notes String?
+ runways Runway[]
+}
+model Runway {
+ id String @id @default(cuid())
+ airportId String
+ airport Airport @relation(fields:[airportId],references:[id],onDelete:Cascade)
+ designator String
+ verified Boolean @default(false)
+ notes String?
+ @@unique([airportId,designator])
+}
+model Aircraft { id String @id @default(cuid()); name String @unique; active Boolean @default(true) }
+model Flight {
+ id String @id @default(cuid())
+ ownerId String
+ owner User @relation(fields:[ownerId],references:[id])
+ callsign String
+ departure String
+ arrival String
+ aircraft String
+ pilot String?
+ copilot String?
+ altitude String?
+ remarks String?
+ status FlightStatus @default(PLANNED)
+ createdAt DateTime @default(now())
+ @@index([ownerId,createdAt])
+}
+model AtisRecord {
+ id String @id @default(cuid())
+ airport String
+ letter String
+ remarks String
+ updatedBy String
+ updatedAt DateTime @updatedAt
+ @@index([airport,updatedAt])
+}
+model AtcMessage {
+ id String @id @default(cuid())
+ userId String
+ role String
+ content String
+ frequency String
+ createdAt DateTime @default(now())
+}
+model AuditLog {
+ id String @id @default(cuid())
+ userId String?
+ action String
+ details Json?
+ createdAt DateTime @default(now())
+}
